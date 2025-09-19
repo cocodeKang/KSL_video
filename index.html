@@ -146,7 +146,7 @@
   // 메모: 3칸, 자동저장, 버튼 제거
   const memoWrap = document.createElement('div'); memoWrap.className = 'memo';
   function memoKey(src, i){ return `memo::${src}::${i}` }
-  const memoCount = 3;
+  const memoCount = 1;
   for(let i=1;i<=memoCount;i++){
     const box = document.createElement('div'); box.style.marginTop = '10px';
     const label = document.createElement('label'); label.textContent = `메모 ${i}`; label.style.display = 'block';
