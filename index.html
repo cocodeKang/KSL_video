@@ -1,14 +1,318 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>수어 영상 보기</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>수어영상 학습 사이트</title>
+  <style>
+    :root {
+      --bg: #0f172a; /* slate-900 */
+      --panel: #111827; /* gray-900 */
+      --ink: #e5e7eb; /* gray-200 */
+      --muted: #9ca3af; /* gray-400 */
+      --accent: #22d3ee; /* cyan-400 */
+      --accent-2: #60a5fa; /* blue-400 */
+      --ok: #34d399; /* emerald-400 */
+      --warn: #f59e0b; /* amber-500 */
+      --danger: #fb7185; /* rose-400 */
+    }
+    * { box-sizing: border-box }
+    body {
+      margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Apple SD Gothic Neo, sans-serif;
+    }
+    header {
+      position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.7); border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 18px 16px; }
+    h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.2px }
+    .sub { font-size: 13px; color: var(--muted) }
+
+    .toolbar { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap }
+    button, .btn {
+      border: 0; padding: 8px 12px; border-radius: 12px; cursor: pointer; color: #0b1220;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); font-weight: 700; font-size: 14px;
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.25);
+    }
+    button.secondary { background: #1f2937; color: var(--ink); box-shadow: none; border: 1px solid rgba(255,255,255,0.08) }
+    button.ghost { background: transparent; color: var(--ink); border: 1px dashed rgba(255,255,255,0.18) }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; padding: 18px 16px; }
+    .card { grid-column: span 12; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.09); border-radius: 16px; padding: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+    @media (min-width: 760px){ .card { grid-column: span 6 } }
+    @media (min-width: 1060px){ .card { grid-column: span 4 } }
+
+    .card h3 { margin: 8px 0 10px; font-size: 18px }
+    .meta { font-size: 12px; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+    .meta a { color: var(--accent) }
+
+    video { width: 100%; border-radius: 12px; background: #000 }
+    .controls { display: flex; gap: 8px; margin: 10px 0 2px; flex-wrap: wrap }
+
+    .answer {
+      margin-top: 8px; padding: 10px 12px; border-radius: 10px;
+      background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25);
+      display: none; white-space: pre-wrap; line-height: 1.5;
+    }
+
+    .memo { margin-top: 12px }
+    .memo label { font-size: 13px; color: var(--muted) }
+    .memo textarea { width: 100%; min-height: 90px; border-radius: 12px; padding: 10px 12px; background: #0b1220; color: var(--ink);
+      border: 1px solid rgba(255,255,255,0.12); resize: vertical }
+    .memo-bar { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap }
+    .status { font-size: 12px; color: var(--muted) }
+    .status.saved { color: var(--ok) }
+    .status.rec { color: var(--warn) }
+
+    footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px 0 60px }
+    .hint { font-size: 12px; color: var(--muted) }
+
+    .pill { padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); font-size: 11px }
+  </style>
 </head>
 <body>
-  <h2>실시간 재생 영상</h2>
-  <video controls autoplay width="600">
-    <source src="https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202410/q7oplifUF3jxiflF.mp4" type="video/mp4">
-    브라우저가 영상을 지원하지 않습니다.
-  </video>
+  <header>
+    <div class="wrap">
+      <h1>수어영상 학습 사이트</h1>
+      <div class="sub">새로고침할 때마다 영상 카드가 랜덤으로 섞입니다. 각 카드에서 메모를 텍스트/음성으로 기록하고, <b>정답확인</b>으로 용례 번역문을 확인하세요.</div>
+      <div class="toolbar">
+        <button id="shuffleBtn" title="카드 순서 섞기">🔀 순서 다시 섞기</button>
+        <button id="revealAllBtn" class="secondary" title="모든 카드의 정답을 펼치기/숨기기">✅ 전체 정답 토글</button>
+        <span class="hint">음성입력: 크롬/엣지(데스크톱) 권장 · 마이크 권한 필요</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="grid" id="grid"></main>
+
+  <footer>
+    © 2025 수어 학습 · 로컬에 메모가 자동 저장됩니다. (브라우저/기기별 분리)
+  </footer>
+
+  <script>
+    // ===== 1) 데이터: 한국어 대응표현 / 용례 번역문 / 동영상 주소 =====
+    /**
+     * 항목 추가 방법:
+     *   data.push({ k: "한국어 대응표현", ex: "용례 번역문", src: "동영상 mp4 주소" });
+     */
+    const data = [
+      { k: "종", ex: "나는 딸과 걷던 중에 딸이 종을 사달라고 졸라서 딸에게 종을 사 주었다.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202410/LJnoOaDhWmp79ayX.mp4" },
+      { k: "종", ex: "새해를 맞아 제야의 종소리가 울려 퍼졌다.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202410/q7oplifUF3jxiflF.mp4" },
+      // 여기에 계속 추가하세요.
+    ];
+
+    // ===== 2) 유틸: 섞기 (Fisher-Yates) =====
+    function shuffle(arr){
+      const a = arr.slice();
+      for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    // ===== 3) 로컬스토리지 키 =====
+    const MEMO_KEY = (src) => `memo::${src}`;
+    const ANSWER_SHOWN_KEY = (src) => `answer::shown::${src}`;
+
+    // ===== 4) 음성 인식 준비 =====
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    function createRecognizer(lang='ko-KR'){
+      if(!SpeechRecognition) return null;
+      const r = new SpeechRecognition();
+      r.lang = lang;
+      r.continuous = false;
+      r.interimResults = true;
+      r.maxAlternatives = 1;
+      return r;
+    }
+
+    // ===== 5) 카드 렌더링 =====
+    const grid = document.getElementById('grid');
+
+    function render(cards){
+      grid.innerHTML = '';
+      cards.forEach(item => {
+        const card = document.createElement('section');
+        card.className = 'card';
+
+        const title = document.createElement('h3');
+        title.textContent = `한국어 대응표현: ${item.k}`;
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.innerHTML = `<span class="pill">학습 카드</span><span>•</span><a href="${item.src}" target="_blank" rel="noopener">동영상 주소 열기</a>`;
+
+        const v = document.createElement('video');
+        v.controls = true; v.preload = 'metadata'; v.src = item.src;
+
+        const controls = document.createElement('div');
+        controls.className = 'controls';
+
+        const btnAnswer = document.createElement('button');
+        btnAnswer.className = 'secondary';
+        btnAnswer.textContent = '정답확인';
+
+        const btnReplay = document.createElement('button');
+        btnReplay.className = 'ghost';
+        btnReplay.textContent = '↺ 처음부터';
+
+        const answer = document.createElement('div');
+        answer.className = 'answer';
+        answer.textContent = item.ex;
+
+        // 이전 표시 상태 복원
+        const wasShown = localStorage.getItem(ANSWER_SHOWN_KEY(item.src)) === '1';
+        if(wasShown){ answer.style.display = 'block' }
+
+        btnAnswer.addEventListener('click', () => {
+          const visible = answer.style.display === 'block';
+          answer.style.display = visible ? 'none' : 'block';
+          localStorage.setItem(ANSWER_SHOWN_KEY(item.src), visible ? '0' : '1');
+        });
+
+        btnReplay.addEventListener('click', () => { v.currentTime = 0; v.play(); });
+
+        controls.append(btnAnswer, btnReplay);
+
+        // 메모 영역
+        const memoWrap = document.createElement('div');
+        memoWrap.className = 'memo';
+
+        const memoLabel = document.createElement('label');
+        memoLabel.textContent = '메모';
+
+        const ta = document.createElement('textarea');
+        ta.placeholder = '학습 중 메모를 작성하세요. (자동 저장)';
+        ta.value = localStorage.getItem(MEMO_KEY(item.src)) || '';
+
+        const memoBar = document.createElement('div');
+        memoBar.className = 'memo-bar';
+
+        const btnMic = document.createElement('button');
+        btnMic.className = 'secondary';
+        btnMic.textContent = SpeechRecognition ? '🎙️ 음성입력 시작' : '🎙️ 음성입력 불가';
+        if(!SpeechRecognition){ btnMic.disabled = true; }
+
+        const btnClear = document.createElement('button');
+        btnClear.className = 'ghost';
+        btnClear.textContent = '🧹 메모 지우기';
+
+        const status = document.createElement('span');
+        status.className = 'status';
+        status.textContent = '저장 안 됨';
+
+        // 저장 로직
+        let saveTimer = null;
+        function scheduleSave(){
+          status.classList.remove('saved');
+          status.textContent = '저장 중…';
+          clearTimeout(saveTimer);
+          saveTimer = setTimeout(() => {
+            localStorage.setItem(MEMO_KEY(item.src), ta.value);
+            status.classList.add('saved');
+            status.textContent = '저장됨';
+          }, 400);
+        }
+        ta.addEventListener('input', scheduleSave);
+
+        btnClear.addEventListener('click', () => {
+          ta.value = '';
+          localStorage.removeItem(MEMO_KEY(item.src));
+          status.classList.remove('saved');
+          status.textContent = '비워짐';
+        });
+
+        // 음성 인식 동작
+        let rec = null; let recognizing = false;
+        btnMic.addEventListener('click', () => {
+          if(!SpeechRecognition) return;
+          if(!recognizing){
+            rec = createRecognizer('ko-KR');
+            if(!rec) return;
+            recognizing = true;
+            btnMic.textContent = '🛑 음성입력 중지';
+            status.classList.add('rec');
+            status.textContent = '음성 인식 중…';
+
+            let interim = '';
+            rec.onresult = (e) => {
+              let finalText = '';
+              for(let i=e.resultIndex; i<e.results.length; i++){
+                const r = e.results[i];
+                if(r.isFinal){ finalText += r[0].transcript; }
+                else { interim += r[0].transcript; }
+              }
+              if(finalText){
+                // 메모에 이어 붙이기
+                ta.value = (ta.value ? (ta.value + ' ') : '') + finalText.trim();
+                scheduleSave();
+              }
+            };
+            rec.onerror = (e) => {
+              status.classList.remove('rec');
+              status.textContent = '음성 인식 오류: ' + (e.error || '알 수 없음');
+              recognizing = false;
+              btnMic.textContent = '🎙️ 음성입력 시작';
+            };
+            rec.onend = () => {
+              status.classList.remove('rec');
+              if(recognizing){
+                // 사용자가 중지 누르지 않았으면 자동 종료 알림
+                status.textContent = '음성 입력 종료';
+                recognizing = false;
+                btnMic.textContent = '🎙️ 음성입력 시작';
+              }
+            };
+            try { rec.start(); } catch(err){
+              status.classList.remove('rec');
+              status.textContent = '시작 실패: ' + err.message;
+              recognizing = false;
+              btnMic.textContent = '🎙️ 음성입력 시작';
+            }
+          } else {
+            // 정지
+            recognizing = false;
+            try { rec && rec.stop(); } catch {}
+            btnMic.textContent = '🎙️ 음성입력 시작';
+            status.classList.remove('rec');
+            status.textContent = '음성 입력 중지';
+          }
+        });
+
+        memoBar.append(btnMic, btnClear, status);
+        memoWrap.append(memoLabel, ta, memoBar);
+
+        card.append(title, meta, v, controls, answer, memoWrap);
+        grid.append(card);
+      });
+    }
+
+    // ===== 6) 초기 섞어서 렌더 =====
+    let current = shuffle(data);
+    render(current);
+
+    // ===== 7) 상단 툴바 =====
+    document.getElementById('shuffleBtn').addEventListener('click', () => {
+      current = shuffle(data);
+      render(current);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    document.getElementById('revealAllBtn').addEventListener('click', () => {
+      // 현재 보이는 카드들의 정답을 모두 토글
+      const anyHidden = [...document.querySelectorAll('.answer')].some(a => a.style.display !== 'block');
+      document.querySelectorAll('.answer').forEach((a, idx) => {
+        const card = a.closest('.card');
+        const video = card.querySelector('video');
+        if(anyHidden){ a.style.display = 'block'; localStorage.setItem(ANSWER_SHOWN_KEY(video.src), '1'); }
+        else { a.style.display = 'none'; localStorage.setItem(ANSWER_SHOWN_KEY(video.src), '0'); }
+      });
+    });
+  </script>
 </body>
 </html>
