@@ -5,114 +5,128 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>수어영상 학습 사이트</title>
   <style>
-    body { background:#0f172a; color:#e5e7eb; font-family: system-ui, sans-serif; margin:0; }
-    header { background:#111827; padding:12px 16px; position:sticky; top:0; }
-    h1 { margin:0; font-size:20px; }
-    .wrap { max-width:800px; margin:0 auto; padding:16px; }
-    video { width:100%; border-radius:12px; background:#000; }
-    button { margin:4px; padding:8px 12px; border-radius:8px; cursor:pointer; border:none; font-size:14px; }
-    .secondary { background:#1f2937; color:#e5e7eb; }
-    .ghost { background:transparent; color:#e5e7eb; border:1px dashed #4b5563; }
-    .answer { display:none; margin-top:10px; padding:8px; background:rgba(34,197,94,0.1); border-radius:8px; }
-    .memo { margin-top:12px; }
-    .memo textarea { width:100%; min-height:80px; border-radius:8px; padding:8px; background:#0b1220; color:#e5e7eb; border:1px solid #374151; }
-    .controls { margin-top:8px; }
+    :root {
+      --bg: #0f172a; --panel: #111827; --ink: #e5e7eb; --muted: #9ca3af;
+      --accent: #22d3ee; --accent-2: #60a5fa; --ok: #34d399; --warn: #f59e0b; --danger: #fb7185;
+    }
+    * { box-sizing: border-box }
+    body { margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, sans-serif; }
+    header { position:sticky; top:0; z-index:10; backdrop-filter:blur(8px); background:rgba(15,23,42,0.7); border-bottom:1px solid rgba(255,255,255,0.08) }
+    .wrap { max-width:900px; margin:0 auto; padding:18px 16px }
+    h1 { margin:0 0 6px; font-size:22px }
+    .sub { font-size:13px; color:var(--muted) }
+    .toolbar { display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap }
+    button { border:0; padding:8px 12px; border-radius:12px; cursor:pointer; font-weight:700; font-size:14px; }
+    button { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#0b1220; box-shadow:0 6px 18px rgba(37,99,235,0.25) }
+    button.secondary { background:#1f2937; color:var(--ink); border:1px solid rgba(255,255,255,0.08); box-shadow:none }
+    button.ghost { background:transparent; color:var(--ink); border:1px dashed rgba(255,255,255,0.18) }
+    main { max-width:900px; margin:0 auto; padding:18px 16px }
+    .card { background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.09); border-radius:16px; padding:14px; box-shadow:0 10px 25px rgba(0,0,0,0.25) }
+    .card h3 { margin:8px 0 10px; font-size:18px }
+    .meta { font-size:12px; color:var(--muted); display:flex; gap:10px; align-items:center }
+    .meta a { color:var(--accent) }
+    video { width:100%; border-radius:12px; background:#000 }
+    .controls { display:flex; gap:8px; margin:10px 0 2px; flex-wrap:wrap }
+    .answer { margin-top:8px; padding:10px 12px; border-radius:10px; background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.25); display:none; white-space:pre-wrap; line-height:1.5 }
+    .memo { margin-top:12px }
+    .memo label { font-size:13px; color:var(--muted) }
+    .memo textarea { width:100%; min-height:110px; border-radius:12px; padding:10px 12px; background:#0b1220; color:var(--ink); border:1px solid rgba(255,255,255,0.12); resize:vertical }
+    .memo-bar { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap }
+    .status { font-size:12px; color:var(--muted) }
+    .status.saved { color:var(--ok) }
+    footer { text-align:center; color:var(--muted); font-size:12px; padding:24px 0 60px }
+    .hint { font-size:12px; color:var(--muted) }
+    .pill { padding:2px 8px; border-radius:999px; border:1px solid rgba(255,255,255,0.12); font-size:11px }
+    .pager { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:10px 0 14px }
+    .rate { display:flex; align-items:center; gap:8px; flex-wrap:wrap }
+    .rate .now { font-size:12px; color:var(--muted) }
+    input[type="range"] { width:220px }
   </style>
 </head>
 <body>
   <header>
-    <h1>수어영상 학습 사이트</h1>
-  </header>
-  <main class="wrap">
-    <div id="card"></div>
-    <div class="controls">
-      <button id="prevBtn" class="secondary">⬅ 이전</button>
-      <button id="nextBtn" class="secondary">다음 ➡</button>
-      <button id="toggleAnswer" class="secondary">정답확인</button>
-      <button id="slower" class="ghost">⏪ 느리게</button>
-      <button id="faster" class="ghost">⏩ 빠르게</button>
-    </div>
-    <div class="answer" id="answer"></div>
-    <div class="memo">
-      <textarea id="memoBox" placeholder="메모를 입력하거나 음성으로 기록하세요..."></textarea>
-      <div>
-        <button id="voiceBtn" class="secondary">🎙️ 음성입력</button>
+    <div class="wrap">
+      <h1>수어영상 학습 사이트</h1>
+      <div class="sub">한 번에 <b>1개 영상</b>만 표시됩니다. 메모는 자동 저장되며, <b>정답확인</b>으로 용례 번역문을 확인하세요.</div>
+      <div class="toolbar">
+        <button id="reshuffleBtn">🔀 전체 순서 재섞기</button>
+        <button id="revealBtn" class="secondary">✅ 정답 토글</button>
+        <span id="posHint" class="hint"></span>
       </div>
     </div>
+  </header>
+  <main>
+    <section class="card" id="card"></section>
   </main>
-
+  <footer>© 2025 수어 학습 · 로컬에 메모와 정답 상태가 자동 저장됩니다.</footer>
   <script>
     const data = [
-      { k:"종", ex:"나는 딸과 걷던 중에 딸이 종을 사달라고 졸라서 딸에게 종을 사 주었다.", src:"https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202410/LJnoOaDhWmp79ayX.mp4" },
-      { k:"종", ex:"새해를 맞아 제야의 종소리가 울려 퍼졌다.", src:"https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202410/q7oplifUF3jxiflF.mp4" },
-      { k:"언니, 누나", ex:"우리 언니는 잔소리 대마왕이다.", src:"https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/KAzk0Lpg8kVYKDIE.mp4" },
-      { k:"언니, 누나", ex:"우리 언니랑 나랑 얼굴이 똑같다고? 그런 말은 처음 들어.", src:"https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/RPeMYLOXzDIFD77p.mp4" },
-      { k:"언니, 누나", ex:"우리 언니는 항공사에서 일한다.", src:"https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/aPHbBWANGd2ROYhJ.mp4" },
-      { k:"언니, 누나", ex:"나는 남동생은 있고 언니는 없다.", src:"https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/68EphdW6QNnndXSG.mp4" },
-      { k:"아이고, 아뿔싸", ex:"나는 라면을 끓여서 먹다가 계란을 넣는 것을 깜박했다는 걸 깨달았다.", src:"https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/hHjAX8dOCpXMUKcG.mp4" },
-      { k:"아이고, 아뿔싸", ex:"가: 오후에 비가 내린다는데, 우산 챙겼어? 나: 아이고. 깜빡했네.", src:"https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/a3mFRN8ardsnitaQ.mp4" },
-      { k:"아이고, 아뿔싸", ex:"나는 비행기를 타고 나서야 핸드폰 충전기를 집에 두고 온 것이 생각났다.", src:"https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/CpIXrdKcNgjECYYN.mp4" },
-      { k:"아이고, 아뿔싸", ex:"나는 축구 경기에서, 어렵게 골대 앞까지 가서 슛을 날렸는데 공이 골대를 빗겨 나가고 말았다.", src:"https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/4xPXgFiK9GgfH9Lb.mp4" }
+      { k: "종", ex: "나는 딸과 걷던 중에 딸이 종을 사달라고 졸라서 딸에게 종을 사 주었다.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202410/LJnoOaDhWmp79ayX.mp4" },
+      { k: "종", ex: "새해를 맞아 제야의 종소리가 울려 퍼졌다.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202410/q7oplifUF3jxiflF.mp4" },
+      { k: "언니, 누나", ex: "우리 언니는 잔소리 대마왕이다.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/KAzk0Lpg8kVYKDIE.mp4" },
+      { k: "언니, 누나", ex: "우리 언니랑 나랑 얼굴이 똑같다고? 그런 말은 처음 들어.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/RPeMYLOXzDIFD77p.mp4" },
+      { k: "언니, 누나", ex: "우리 언니는 항공사에서 일한다.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/aPHbBWANGd2ROYhJ.mp4" },
+      { k: "언니, 누나", ex: "나는 남동생은 있고 언니는 없다.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/68EphdW6QNnndXSG.mp4" },
+      { k: "아이고, 아뿔싸", ex: "나는 라면을 끓여서 먹다가 계란을 넣는 것을 깜박했다는 걸 깨달았다.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/hHjAX8dOCpXMUKcG.mp4" },
+      { k: "아이고, 아뿔싸", ex: "가: 오후에 비가 내린다는데, 우산 챙겼어? 나: 아이고. 깜빡했네.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/a3mFRN8ardsnitaQ.mp4" },
+      { k: "아이고, 아뿔싸", ex: "나는 비행기를 타고 나서야 핸드폰 충전기를 집에 두고 온 것이 생각났다.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/CpIXrdKcNgjECYYN.mp4" },
+      { k: "아이고, 아뿔싸", ex: "나는 축구 경기에서, 어렵게 골대 앞까지 가서 슛을 날렸는데 공이 골대를 빗겨 나가고 말았다.", src: "https://ksldict.korean.go.kr/kslserv/signFile/video/exmp/202411/4xPXgFiK9GgfH9Lb.mp4" }
     ];
+    function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a }
+    const MEMO_KEY=(src)=>`memo::${src}`; const ANSWER_SHOWN_KEY=(src)=>`answer::shown::${src}`;
+    const ORDER_KEY='order::v1'; const INDEX_KEY='index::v1'; const RATE_KEY=(src)=>`rate::${src}`;
+    let order=JSON.parse(localStorage.getItem(ORDER_KEY)||'null');
+    if(!order||!Array.isArray(order)||order.length!==data.length){ order=shuffle([...Array(data.length).keys()]); localStorage.setItem(ORDER_KEY,JSON.stringify(order)); }
+    let idx=parseInt(localStorage.getItem(INDEX_KEY)||'0',10); if(isNaN(idx)||idx<0||idx>=order.length) idx=0;
+    const card=document.getElementById('card'); const posHint=document.getElementById('posHint');
 
-    let idx = 0;
-    const cardDiv = document.getElementById('card');
-    const answerDiv = document.getElementById('answer');
-    const memoBox = document.getElementById('memoBox');
-
-    function render(){
-      const item = data[idx];
-      cardDiv.innerHTML = `
-        <h3>한국어 대응표현: ${item.k}</h3>
-        <video id="video" controls src="${item.src}"></video>
-      `;
-      answerDiv.style.display = 'none';
-      answerDiv.textContent = item.ex;
-      memoBox.value = localStorage.getItem(`memo::${item.src}`)||'';
+    function renderOne(){
+      const item=data[order[idx]]; card.innerHTML='';
+      const title=document.createElement('h3'); title.textContent=`한국어 대응표현: ${item.k}`;
+      const meta=document.createElement('div'); meta.className='meta'; meta.innerHTML=`<span class="pill">학습 카드 ${idx+1}/${data.length}</span><span>•</span><a href="${item.src}" target="_blank">동영상 주소 열기</a>`;
+      const v=document.createElement('video'); v.controls=true; v.preload='auto'; v.autoplay=true; v.muted=false; v.src=item.src;
+      const savedRate=parseFloat(localStorage.getItem(RATE_KEY(item.src))||'1'); if(!isNaN(savedRate)) v.playbackRate=savedRate;
+      const pager=document.createElement('div'); pager.className='pager';
+      const left=document.createElement('div');
+      const btnPrev=document.createElement('button'); btnPrev.className='secondary'; btnPrev.textContent='◀ 이전';
+      const btnNext=document.createElement('button'); btnNext.className='secondary'; btnNext.textContent='다음 ▶';
+      left.append(btnPrev,btnNext);
+      const rate=document.createElement('div'); rate.className='rate';
+      const rateDown=document.createElement('button'); rateDown.className='ghost'; rateDown.textContent='－';
+      const rateUp=document.createElement('button'); rateUp.className='ghost'; rateUp.textContent='＋';
+      const rateReset=document.createElement('button'); rateReset.className='ghost'; rateReset.textContent='1.0x';
+      const rateNow=document.createElement('span'); rateNow.className='now'; rateNow.textContent=`${v.playbackRate.toFixed(2)}x`;
+      const rateSlider=document.createElement('input'); rateSlider.type='range'; rateSlider.min='0.25'; rateSlider.max='2.0'; rateSlider.step='0.05'; rateSlider.value=String(v.playbackRate);
+      rate.append(rateDown,rateUp,rateReset,rateNow,rateSlider);
+      pager.append(left,rate);
+      const controls=document.createElement('div'); controls.className='controls';
+      const btnAnswer=document.createElement('button'); btnAnswer.className='secondary'; btnAnswer.textContent='정답확인';
+      const btnReplay=document.createElement('button'); btnReplay.className='ghost'; btnReplay.textContent='↺ 처음부터';
+      const answer=document.createElement('div'); answer.className='answer'; answer.textContent=item.ex;
+      const wasShown=localStorage.getItem(ANSWER_SHOWN_KEY(item.src))==='1'; if(wasShown) answer.style.display='block';
+      btnAnswer.addEventListener('click',()=>{const vis=answer.style.display==='block'; answer.style.display=vis?'none':'block'; localStorage.setItem(ANSWER_SHOWN_KEY(item.src),vis?'0':'1')});
+      btnReplay.addEventListener('click',()=>{v.currentTime=0; v.play();});
+      const memoWrap=document.createElement('div'); memoWrap.className='memo';
+      const memoLabel=document.createElement('label'); memoLabel.textContent='메모';
+      const ta=document.createElement('textarea'); ta.placeholder='학습 중 메모를 작성하세요.'; ta.value=localStorage.getItem(MEMO_KEY(item.src))||'';
+      const memoBar=document.createElement('div'); memoBar.className='memo-bar';
+      const btnClear=document.createElement('button'); btnClear.className='ghost'; btnClear.textContent='🧹 메모 지우기';
+      const status=document.createElement('span'); status.className='status'; status.textContent='저장 안 됨';
+      let saveTimer=null; function scheduleSave(){status.textContent='저장 중…'; clearTimeout(saveTimer); saveTimer=setTimeout(()=>{localStorage.setItem(MEMO_KEY(item.src),ta.value); status.classList.add('saved'); status.textContent='저장됨';},350)}
+      ta.addEventListener('input',scheduleSave);
+      btnClear.addEventListener('click',()=>{ta.value=''; localStorage.removeItem(MEMO_KEY(item.src)); status.textContent='비워짐'});
+      memoBar.append(btnClear,status);
+      function go(delta){ idx=(idx+delta+order.length)%order.length; localStorage.setItem(INDEX_KEY,String(idx)); window.scrollTo({top:0,behavior:'smooth'}); renderOne(); }
+      btnPrev.addEventListener('click',()=>go(-1)); btnNext.addEventListener('click',()=>go(1));
+      function applyRate(val){ const c=Math.min(2.0,Math.max(0.25,val)); v.playbackRate=c; rateNow.textContent=`${c.toFixed(2)}x`; rateSlider.value=String(c); localStorage.setItem(RATE_KEY(item.src),String(c)); }
+      rateDown.addEventListener('click',()=>applyRate(v.playbackRate-0.25)); rateUp.addEventListener('click',()=>applyRate(v.playbackRate+0.25)); rateReset.addEventListener('click',()=>applyRate(1.0)); rateSlider.addEventListener('input',(e)=>applyRate(parseFloat(e.target.value)));
+      controls.append(btnAnswer,btnReplay);
+      card.append(title,meta,v,pager,controls,answer,memoWrap,memoLabel,ta,memoBar);
+      posHint.textContent=`현재 위치: ${idx+1}/${data.length}`;
     }
-
-    render();
-
-    document.getElementById('prevBtn').onclick = ()=>{ idx=(idx-1+data.length)%data.length; render(); };
-    document.getElementById('nextBtn').onclick = ()=>{ idx=(idx+1)%data.length; render(); };
-    document.getElementById('toggleAnswer').onclick = ()=>{
-      answerDiv.style.display = (answerDiv.style.display==='block'?'none':'block');
-    };
-
-    document.getElementById('slower').onclick = ()=>{
-      const v=document.getElementById('video');
-      v.playbackRate=Math.max(0.25, v.playbackRate-0.25);
-    };
-    document.getElementById('faster').onclick = ()=>{
-      const v=document.getElementById('video');
-      v.playbackRate=Math.min(3, v.playbackRate+0.25);
-    };
-
-    memoBox.addEventListener('input', ()=>{
-      const item = data[idx];
-      localStorage.setItem(`memo::${item.src}`, memoBox.value);
-    });
-
-    // 음성 입력 -> 텍스트 변환
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let rec;
-    if(SpeechRecognition){
-      rec = new SpeechRecognition();
-      rec.lang='ko-KR';
-      rec.continuous=false;
-      rec.interimResults=false;
-      rec.onresult = e=>{
-        const text = e.results[0][0].transcript;
-        memoBox.value += (memoBox.value? ' ':'')+ text;
-        const item=data[idx];
-        localStorage.setItem(`memo::${item.src}`, memoBox.value);
-      };
-    }
-
-    document.getElementById('voiceBtn').onclick = ()=>{
-      if(!rec){ alert('음성 인식이 지원되지 않습니다.'); return; }
-      try{ rec.start(); }catch(err){ console.error(err); }
-    };
+    renderOne();
+    document.getElementById('reshuffleBtn').addEventListener('click',()=>{order=shuffle([...Array(data.length).keys()]); localStorage.setItem(ORDER_KEY,JSON.stringify(order)); idx=0; localStorage.setItem(INDEX_KEY,'0'); renderOne(); window.scrollTo({top:0,behavior:'smooth'});});
+    document.getElementById('revealBtn').addEventListener('click',()=>{const a=card.querySelector('.answer'); const v=card.querySelector('video'); const vis=a.style.display==='block'; a.style.display=vis?'none':'block'; localStorage.setItem(ANSWER_SHOWN_KEY(v.src),vis?'0':'1')});
   </script>
 </body>
 </html>
