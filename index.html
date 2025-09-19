@@ -47,7 +47,7 @@
   <header>
     <div class="wrap">
       <h1>수어영상 학습 사이트</h1>
-      <div class="sub">한 번에 <b>1개 영상</b>만 표시됩니다. 메모는 자동 저장되며, <b>정답확인</b>으로 용례 번역문을 확인하세요.</div>
+      <div class="sub"></div>
       <div class="toolbar">
         <button id="reshuffleBtn">🔀 전체 순서 재섞기</button>
         <button id="revealBtn" class="secondary">✅ 정답 토글</button>
@@ -81,52 +81,142 @@
     const card=document.getElementById('card'); const posHint=document.getElementById('posHint');
 
     function renderOne(){
-      const item=data[order[idx]]; card.innerHTML='';
-      const title=document.createElement('h3'); title.textContent=`한국어 대응표현: ${item.k}`;
-      const meta=document.createElement('div'); meta.className='meta'; meta.innerHTML=`<span class="pill">학습 카드 ${idx+1}/${data.length}</span><span>•</span><a href="${item.src}" target="_blank">동영상 주소 열기</a>`;
-      const v=document.createElement('video'); v.controls=true; v.preload='auto'; v.autoplay=true; v.muted=false; v.src=item.src;
-      const savedRate=parseFloat(localStorage.getItem(RATE_KEY(item.src))||'1'); if(!isNaN(savedRate)) v.playbackRate=savedRate;
-      const pager=document.createElement('div'); pager.className='pager';
-      const left=document.createElement('div');
-      const btnPrev=document.createElement('button'); btnPrev.className='secondary'; btnPrev.textContent='◀ 이전';
-      const btnNext=document.createElement('button'); btnNext.className='secondary'; btnNext.textContent='다음 ▶';
-      left.append(btnPrev,btnNext);
-      const rate=document.createElement('div'); rate.className='rate';
-      const rateDown=document.createElement('button'); rateDown.className='ghost'; rateDown.textContent='－';
-      const rateUp=document.createElement('button'); rateUp.className='ghost'; rateUp.textContent='＋';
-      const rateReset=document.createElement('button'); rateReset.className='ghost'; rateReset.textContent='1.0x';
-      const rateNow=document.createElement('span'); rateNow.className='now'; rateNow.textContent=`${v.playbackRate.toFixed(2)}x`;
-      const rateSlider=document.createElement('input'); rateSlider.type='range'; rateSlider.min='0.25'; rateSlider.max='2.0'; rateSlider.step='0.05'; rateSlider.value=String(v.playbackRate);
-      rate.append(rateDown,rateUp,rateReset,rateNow,rateSlider);
-      pager.append(left,rate);
-      const controls=document.createElement('div'); controls.className='controls';
-      const btnAnswer=document.createElement('button'); btnAnswer.className='secondary'; btnAnswer.textContent='정답확인';
-      const btnReplay=document.createElement('button'); btnReplay.className='ghost'; btnReplay.textContent='↺ 처음부터';
-      const answer=document.createElement('div'); answer.className='answer'; answer.textContent=item.ex;
-      const wasShown=localStorage.getItem(ANSWER_SHOWN_KEY(item.src))==='1'; if(wasShown) answer.style.display='block';
-      btnAnswer.addEventListener('click',()=>{const vis=answer.style.display==='block'; answer.style.display=vis?'none':'block'; localStorage.setItem(ANSWER_SHOWN_KEY(item.src),vis?'0':'1')});
-      btnReplay.addEventListener('click',()=>{v.currentTime=0; v.play();});
-      const memoWrap=document.createElement('div'); memoWrap.className='memo';
-      const memoLabel=document.createElement('label'); memoLabel.textContent='메모';
-      const ta=document.createElement('textarea'); ta.placeholder='학습 중 메모를 작성하세요.'; ta.value=localStorage.getItem(MEMO_KEY(item.src))||'';
-      const memoBar=document.createElement('div'); memoBar.className='memo-bar';
-      const btnClear=document.createElement('button'); btnClear.className='ghost'; btnClear.textContent='🧹 메모 지우기';
-      const status=document.createElement('span'); status.className='status'; status.textContent='저장 안 됨';
-      let saveTimer=null; function scheduleSave(){status.textContent='저장 중…'; clearTimeout(saveTimer); saveTimer=setTimeout(()=>{localStorage.setItem(MEMO_KEY(item.src),ta.value); status.classList.add('saved'); status.textContent='저장됨';},350)}
-      ta.addEventListener('input',scheduleSave);
-      btnClear.addEventListener('click',()=>{ta.value=''; localStorage.removeItem(MEMO_KEY(item.src)); status.textContent='비워짐'});
-      memoBar.append(btnClear,status);
-      function go(delta){ idx=(idx+delta+order.length)%order.length; localStorage.setItem(INDEX_KEY,String(idx)); window.scrollTo({top:0,behavior:'smooth'}); renderOne(); }
-      btnPrev.addEventListener('click',()=>go(-1)); btnNext.addEventListener('click',()=>go(1));
-      function applyRate(val){ const c=Math.min(2.0,Math.max(0.25,val)); v.playbackRate=c; rateNow.textContent=`${c.toFixed(2)}x`; rateSlider.value=String(c); localStorage.setItem(RATE_KEY(item.src),String(c)); }
-      rateDown.addEventListener('click',()=>applyRate(v.playbackRate-0.25)); rateUp.addEventListener('click',()=>applyRate(v.playbackRate+0.25)); rateReset.addEventListener('click',()=>applyRate(1.0)); rateSlider.addEventListener('input',(e)=>applyRate(parseFloat(e.target.value)));
-      controls.append(btnAnswer,btnReplay);
-      card.append(title,meta,v,pager,controls,answer,memoWrap,memoLabel,ta,memoBar);
-      posHint.textContent=`현재 위치: ${idx+1}/${data.length}`;
+  const item = data[order[idx]];
+  card.innerHTML = '';
+
+  // 제목: 한국어 대응표현 가림(정답 공개 전)
+  const title = document.createElement('h3');
+  const shown = localStorage.getItem(ANSWER_SHOWN_KEY(item.src)) === '1';
+  title.textContent = `한국어 대응표현: ${shown ? item.k : '가림'}`;
+
+  // 메타: 카드 위치만 표시 (링크 삭제)
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = `학습 카드 ${idx+1}/${data.length}`;
+
+  // 영상: 자동재생
+  const v = document.createElement('video');
+  v.controls = true;
+  v.preload = 'auto';
+  v.autoplay = true;    // 자동재생
+  v.muted = false;      // 필요 시 true로 바꾸면 정책 우회(무음 자동재생)
+  v.src = item.src;
+
+  // 저장된 재생속도 적용
+  const savedRate = parseFloat(localStorage.getItem(RATE_KEY(item.src)) || '1');
+  if(!isNaN(savedRate)) v.playbackRate = savedRate;
+
+  // 페이지 네비 + 속도조절
+  const pager = document.createElement('div');
+  pager.className = 'pager';
+
+  const left = document.createElement('div');
+  const btnPrev = document.createElement('button'); btnPrev.className = 'secondary'; btnPrev.textContent = '◀ 이전';
+  const btnNext = document.createElement('button'); btnNext.className = 'secondary'; btnNext.textContent = '다음 ▶';
+  left.append(btnPrev, btnNext);
+
+  const rate = document.createElement('div'); rate.className = 'rate';
+  const rateDown = document.createElement('button'); rateDown.className = 'ghost'; rateDown.textContent = '－';
+  const rateUp   = document.createElement('button'); rateUp.className   = 'ghost'; rateUp.textContent   = '＋';
+  const rateReset= document.createElement('button'); rateReset.className= 'ghost'; rateReset.textContent= '1.0x';
+  const rateNow  = document.createElement('span');   rateNow.className  = 'now';   rateNow.textContent  = `${v.playbackRate.toFixed(2)}x`;
+  const rateSlider = document.createElement('input');
+  rateSlider.type = 'range'; rateSlider.min = '0.25'; rateSlider.max = '2.0'; rateSlider.step = '0.05';
+  rateSlider.value = String(v.playbackRate);
+  rate.append(rateDown, rateUp, rateReset, rateNow, rateSlider);
+  pager.append(left, rate);
+
+  // 정답/재생 컨트롤
+  const controls = document.createElement('div'); controls.className = 'controls';
+  const btnAnswer = document.createElement('button'); btnAnswer.className = 'secondary'; btnAnswer.textContent = '정답확인';
+  const btnReplay = document.createElement('button'); btnReplay.className = 'ghost';     btnReplay.textContent = '↺ 처음부터';
+
+  const answer = document.createElement('div'); answer.className = 'answer'; answer.textContent = item.ex;
+  if(shown) answer.style.display = 'block';
+
+  btnAnswer.addEventListener('click', () => {
+    const vis = answer.style.display === 'block';
+    answer.style.display = vis ? 'none' : 'block';
+    localStorage.setItem(ANSWER_SHOWN_KEY(item.src), vis ? '0' : '1');
+    // 정답 공개/가림에 따라 제목도 동기화
+    title.textContent = `한국어 대응표현: ${vis ? '가림' : item.k}`;
+  });
+  btnReplay.addEventListener('click', () => { v.currentTime = 0; v.play(); });
+
+  // 메모: 3칸, 자동저장, 버튼 제거
+  const memoWrap = document.createElement('div'); memoWrap.className = 'memo';
+  function memoKey(src, i){ return `memo::${src}::${i}` }
+  const memoCount = 3;
+  for(let i=1;i<=memoCount;i++){
+    const box = document.createElement('div'); box.style.marginTop = '10px';
+    const label = document.createElement('label'); label.textContent = `메모 ${i}`; label.style.display = 'block';
+    const ta = document.createElement('textarea');
+    ta.placeholder = `메모 ${i} (자동 저장)`;
+    ta.value = localStorage.getItem(memoKey(item.src, i)) || '';
+    const bar = document.createElement('div'); bar.className = 'memo-bar';
+    const st  = document.createElement('span'); st.className = 'status'; st.textContent = '저장 안 됨';
+
+    let t = null;
+    function save(){
+      st.textContent = '저장 중…';
+      clearTimeout(t);
+      t = setTimeout(() => {
+        localStorage.setItem(memoKey(item.src, i), ta.value);
+        st.classList.add('saved');
+        st.textContent = '저장됨';
+      }, 350);
     }
+    ta.addEventListener('input', save);
+
+    bar.append(st);
+    box.append(label, ta, bar);
+    memoWrap.append(box);
+  }
+
+  // 이동/속도 조절 함수
+  function go(delta){
+    idx = (idx + delta + order.length) % order.length;
+    localStorage.setItem(INDEX_KEY, String(idx));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    renderOne();
+  }
+  btnPrev.addEventListener('click', () => go(-1));
+  btnNext.addEventListener('click', () => go(1));
+
+  function applyRate(val){
+    const c = Math.min(2.0, Math.max(0.25, val));
+    v.playbackRate = c;
+    rateNow.textContent = `${c.toFixed(2)}x`;
+    rateSlider.value = String(c);
+    localStorage.setItem(RATE_KEY(item.src), String(c));
+  }
+  rateDown.addEventListener('click', () => applyRate(v.playbackRate - 0.25));
+  rateUp  .addEventListener('click', () => applyRate(v.playbackRate + 0.25));
+  rateReset.addEventListener('click', () => applyRate(1.0));
+  rateSlider.addEventListener('input', (e) => applyRate(parseFloat(e.target.value)));
+
+  // DOM 조립
+  card.append(title, meta, v, pager, controls, answer, memoWrap);
+  controls.append(btnAnswer, btnReplay);
+
+  // 상단 위치 힌트
+  posHint.textContent = `현재 위치: ${idx+1}/${data.length}`;
+}
+
     renderOne();
     document.getElementById('reshuffleBtn').addEventListener('click',()=>{order=shuffle([...Array(data.length).keys()]); localStorage.setItem(ORDER_KEY,JSON.stringify(order)); idx=0; localStorage.setItem(INDEX_KEY,'0'); renderOne(); window.scrollTo({top:0,behavior:'smooth'});});
-    document.getElementById('revealBtn').addEventListener('click',()=>{const a=card.querySelector('.answer'); const v=card.querySelector('video'); const vis=a.style.display==='block'; a.style.display=vis?'none':'block'; localStorage.setItem(ANSWER_SHOWN_KEY(v.src),vis?'0':'1')});
+    document.getElementById('revealBtn').addEventListener('click', () => {
+  const a = card.querySelector('.answer');
+  const v = card.querySelector('video');
+  const titleEl = card.querySelector('h3');
+  const vis = a.style.display === 'block';
+  a.style.display = vis ? 'none' : 'block';
+  localStorage.setItem(ANSWER_SHOWN_KEY(v.src), vis ? '0' : '1');
+
+  const item = data[order[idx]];
+  titleEl.textContent = `한국어 대응표현: ${vis ? '가림' : item.k}`;
+});
+
   </script>
 </body>
 </html>
